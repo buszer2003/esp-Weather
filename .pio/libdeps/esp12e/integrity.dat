@@ -1,0 +1,8 @@
+drk/PubSubClient@^2.8.0
+.\lib\LedControl
+.\lib\ESPAsyncTCP.zip
+bblanchon/ArduinoJson@^6.19.4
+adafruit/Adafruit Unified Sensor@^1.1.9
+adafruit/DHT sensor library@^1.4.4
+.\lib\AsyncElegantOTA.zip
+.\lib\ESPAsyncWebServer.zip
