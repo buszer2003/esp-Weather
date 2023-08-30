@@ -1,9 +1,9 @@
 // DHT22 Sensor with 7 segments display - ESP8266
 // features : WiFi, DHT22 Sensor, Seven segments display
 
-const char version[7] = "1.5.02";
-const char built_date[9] = "20230829";
-const char built_time[5] = "2107";
+const char version[7] = "1.5.03";
+const char built_date[9] = "20230830";
+const char built_time[5] = "2131";
 
 #include <ESP8266WiFi.h>
 #include <DHT.h>
@@ -60,6 +60,18 @@ void connectToWifi() {
 	Serial.println(WiFi.SSID());
 }
 
+void reconnect() {
+    if (!client.connected()) {
+        Serial.print("Attempting MQTT connection...");
+        if (client.connect("ESP8266Client")) {
+            Serial.println("connected");
+        } else {
+            Serial.print("failed, rc=");
+            Serial.print(client.state());
+        }
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     Serial.println("Booting");
@@ -95,27 +107,34 @@ void loop() {
         hum3	= int(humidity * 10) % 10;
         updateSegments = millis();
     }
-    if (millis() - publishMQTT > 60000) {
-        DynamicJsonDocument docInfo(64);
-        String MQTT_STR;
-        docInfo["temp"] = String(temperature, 1);
-        docInfo["hum"] = String(humidity, 1);
-        docInfo["rain"] = String(rainValue);
-        serializeJson(docInfo, MQTT_STR);
-        client.publish("esp/weather/log", MQTT_STR.c_str());
-        publishMQTT = millis();
-    }
-    if (millis() - mqttESPinfo > 1000) {
-        DynamicJsonDocument docInfo(128);
-        String MQTT_STR;
-        docInfo["temp"] = String(temperature, 1);
-        docInfo["hum"] = String(humidity, 1);
-        docInfo["rain"] = String(rainValue);
-        docInfo["rssi"] = String(WiFi.RSSI());
-        docInfo["uptime"] = String(millis()/1000);
-        serializeJson(docInfo, MQTT_STR);
-        client.publish("esp/weather/info", MQTT_STR.c_str());
-        mqttESPinfo = millis();
+    if (!client.connected()) {
+		if (millis() - reconnTime > 1000) {
+			reconnect();
+			reconnTime = millis();
+		}
+	} else {
+        if (millis() - publishMQTT > 60000) {
+            DynamicJsonDocument docInfo(64);
+            String MQTT_STR;
+            docInfo["temp"] = String(temperature, 1);
+            docInfo["hum"] = String(humidity, 1);
+            docInfo["rain"] = String(rainValue);
+            serializeJson(docInfo, MQTT_STR);
+            client.publish("esp/weather/log", MQTT_STR.c_str());
+            publishMQTT = millis();
+        }
+        if (millis() - mqttESPinfo > 1000) {
+            DynamicJsonDocument docInfo(128);
+            String MQTT_STR;
+            docInfo["temp"] = String(temperature, 1);
+            docInfo["hum"] = String(humidity, 1);
+            docInfo["rain"] = String(rainValue);
+            docInfo["rssi"] = String(WiFi.RSSI());
+            docInfo["uptime"] = String(millis()/1000);
+            serializeJson(docInfo, MQTT_STR);
+            client.publish("esp/weather/info", MQTT_STR.c_str());
+            mqttESPinfo = millis();
+        }
     }
     if (isnan(temperature) || isnan(humidity) || (humidity == 7 && temperature == 7)) {
         lc.setChar(0, 7, '-', false);
